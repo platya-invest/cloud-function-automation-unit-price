@@ -1,4 +1,4 @@
-const firebaseConfig = require("./firebase-config");
+const firebaseConfig = require("../../firebase-config");
 
 // Use centralized Firebase configuration
 const db = firebaseConfig.getFirestore();
