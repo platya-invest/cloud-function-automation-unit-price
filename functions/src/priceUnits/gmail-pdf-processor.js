@@ -4,18 +4,18 @@ const fs = require("fs");
 const OpenAIProcessor = require("./openai-processor");
 const {saveToFirebase} = require("./save-firebase");
 
-// Configuración de autenticación de Gmail
+// Gmail authentication configuration
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 const TOKEN_PATH = __dirname + "/token.json";
 const CREDENTIALS_PATH = __dirname + "/credentials.json";
 
 /**
- * Clase para procesar emails con PDFs y guardar datos en Firebase
+ * Class to process emails with PDFs and save data to Firebase
  */
 class GmailPDFProcessor {
   /**
-   * Constructor de la clase GmailPDFProcessor
-   * Inicializa las propiedades necesarias para el procesamiento
+   * Constructor for the GmailPDFProcessor class
+   * Initializes the necessary properties for processing
    */
   constructor() {
     this.gmail = null;
@@ -24,7 +24,7 @@ class GmailPDFProcessor {
   }
 
   /**
-   * Configura la autenticación OAuth2 con Gmail API
+   * Sets up OAuth2 authentication with Gmail API
    * @return {Promise<void>}
    */
   async authenticate() {
@@ -36,25 +36,25 @@ class GmailPDFProcessor {
       // eslint-disable-next-line camelcase
       this.auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-      // Intentar cargar token existente
+      // Try to load existing token
       try {
         const token = fs.readFileSync(TOKEN_PATH);
         this.auth.setCredentials(JSON.parse(token));
       } catch (err) {
-        console.log("No se encontró token existente. Necesitas autenticarte.");
+        console.log("No existing token found. You need to authenticate.");
         await this.getNewToken();
       }
 
       this.gmail = google.gmail({version: "v1", auth: this.auth});
-      console.log("✅ Autenticación exitosa con Gmail API");
+      console.log("✅ Successful authentication with Gmail API");
     } catch (error) {
-      console.error("❌ Error en autenticación:", error.message);
+      console.error("❌ Authentication error:", error.message);
       throw error;
     }
   }
 
   /**
-   * Genera un nuevo token de acceso para la autenticación OAuth2
+   * Generates a new access token for OAuth2 authentication
    * @return {Promise<void>}
    */
   async getNewToken() {
@@ -63,16 +63,16 @@ class GmailPDFProcessor {
       scope: SCOPES,
     });
 
-    console.log("Autoriza esta aplicación visitando esta URL:", authUrl);
-    console.log("Después de autorizar, agrega el código en el archivo token.json manualmente");
+    console.log("Authorize this application by visiting this URL:", authUrl);
+    console.log("After authorizing, add the code to the token.json file manually");
 
-    // En un entorno de producción, aquí implementarías la captura automática del código
-    throw new Error("Necesitas completar la autenticación OAuth2 manualmente");
+    // In a production environment, you would implement automatic code capture here
+    throw new Error("You need to complete OAuth2 authentication manually");
   }
 
   /**
-   * Obtiene la fecha de hoy en formato YYYY/MM/DD
-   * @return {string} Fecha en formato YYYY/MM/DD
+   * Gets today's date in YYYY/MM/DD format
+   * @return {string} Date in YYYY/MM/DD format
    */
   getTodayDate() {
     const today = new Date();
@@ -83,52 +83,52 @@ class GmailPDFProcessor {
   }
 
   /**
-   * Busca emails del día de hoy del remitente específico y retorna solo el más reciente
-   * @param {string} senderEmail - Email del remitente
-   * @return {Promise<Object[]>} Array con el mensaje más reciente encontrado
+   * Searches for today's emails from specific sender and returns only the most recent one
+   * @param {string} senderEmail - Sender's email
+   * @return {Promise<Object[]>} Array with the most recent message found
    */
   async searchTodayEmails(senderEmail = "kennedyduque11@gmail.com") {
     try {
       const requiredSubject = "Valor diario de la unidad y rentabilidad fondos";
 
-      // Consulta para buscar emails del remitente específico con asunto específico (últimos 2 días para asegurar que encontremos el email)
+      // Query to search for emails from specific sender with specific subject (last 2 days to ensure we find the email)
       const query = `from:${senderEmail} newer_than:2d has:attachment filename:pdf subject:"${requiredSubject}"`;
 
-      console.log(`🔍 Buscando emails recientes de ${senderEmail} con archivos PDF...`);
-      console.log(`📋 Asunto requerido: "${requiredSubject}"`);
+      console.log(`🔍 Searching for recent emails from ${senderEmail} with PDF files...`);
+      console.log(`📋 Required subject: "${requiredSubject}"`);
 
       const response = await this.gmail.users.messages.list({
         userId: "me",
         q: query,
-        maxResults: 10, // Limitar a 10 resultados más recientes
+        maxResults: 10, // Limit to 10 most recent results
       });
 
       const messages = response.data.messages || [];
-      console.log(`📧 Se encontraron ${messages.length} email(s) que coinciden con los criterios`);
+      console.log(`📧 Found ${messages.length} email(s) matching the criteria`);
 
       if (messages.length === 0) {
         return [];
       }
 
-      // Solo tomar el email más reciente (Gmail devuelve los resultados ordenados por fecha, más reciente primero)
+      // Only take the most recent email (Gmail returns results ordered by date, most recent first)
       const mostRecentMessage = messages[0];
-      console.log(`📧 Procesando solo el email más reciente: ID ${mostRecentMessage.id}`);
+      console.log(`📧 Processing only the most recent email: ID ${mostRecentMessage.id}`);
 
       return [mostRecentMessage];
     } catch (error) {
-      console.error("❌ Error al buscar emails:", error.message);
+      console.error("❌ Error searching emails:", error.message);
       throw error;
     }
   }
 
   /**
-   * Obtiene detalles del mensaje y descarga los PDFs adjuntos
-   * @param {string} messageId - ID del mensaje
-   * @return {Promise<Object[]>} Array de archivos PDF descargados
+   * Gets message details and downloads attached PDFs
+   * @param {string} messageId - Message ID
+   * @return {Promise<Object[]>} Array of downloaded PDF files
    */
   async downloadPDFsFromMessage(messageId) {
     try {
-      console.log(`📥 Procesando mensaje ID: ${messageId}`);
+      console.log(`📥 Processing message ID: ${messageId}`);
 
       const message = await this.gmail.users.messages.get({
         userId: "me",
@@ -140,7 +140,7 @@ class GmailPDFProcessor {
 
       for (const part of parts) {
         if (part.filename && part.filename.toLowerCase().endsWith(".pdf")) {
-          console.log(`📎 Encontrado archivo PDF: ${part.filename}`);
+          console.log(`📎 Found PDF file: ${part.filename}`);
 
           const attachment = await this.gmail.users.messages.attachments.get({
             userId: "me",
@@ -151,7 +151,7 @@ class GmailPDFProcessor {
           const data = attachment.data.data;
           const buffer = Buffer.from(data, "base64");
 
-          console.log(`📎 PDF procesado en memoria: ${part.filename}`);
+          console.log(`📎 PDF processed in memory: ${part.filename}`);
 
           attachments.push({
             filename: part.filename,
@@ -163,41 +163,41 @@ class GmailPDFProcessor {
 
       return attachments;
     } catch (error) {
-      console.error("❌ Error al descargar PDF:", error.message);
+      console.error("❌ Error downloading PDF:", error.message);
       throw error;
     }
   }
 
   /**
-   * Procesa un PDF con IA usando OpenAI
-   * @param {Object} attachment - Objeto con información del archivo PDF
-   * @param {string} attachment.filename - Nombre del archivo
-   * @param {Buffer} attachment.buffer - Buffer con el contenido del PDF
-   * @param {number} attachment.size - Tamaño del archivo
-   * @return {Promise<Object>} Resultado del procesamiento
+   * Processes a PDF with AI using OpenAI
+   * @param {Object} attachment - Object with PDF file information
+   * @param {string} attachment.filename - File name
+   * @param {Buffer} attachment.buffer - Buffer with PDF content
+   * @param {number} attachment.size - File size
+   * @return {Promise<Object>} Processing result
    */
   async processPDFWithAI(attachment) {
     try {
-      // Verificar si OpenAI está configurado
+      // Check if OpenAI is configured
       if (!process.env.OPENAI_API_KEY) {
-        console.log("⚠️  OpenAI no configurado. Para usar IA, configura OPENAI_API_KEY");
-        console.log("💡 Ejecuta: export OPENAI_API_KEY=tu_api_key_aqui");
+        console.log("⚠️  OpenAI not configured. To use AI, configure OPENAI_API_KEY");
+        console.log("💡 Execute: export OPENAI_API_KEY=your_api_key_here");
 
         return {
-          message: "OpenAI no configurado - PDF descargado exitosamente",
+          message: "OpenAI not configured - PDF downloaded successfully",
           filepath: attachment.filepath,
           skipped_ai: true,
         };
       }
 
-      // Procesar con OpenAI
+      // Process with OpenAI
       const result = await this.openaiProcessor.processPDF(attachment);
       return result;
     } catch (error) {
-      console.error("❌ Error al procesar PDF con IA:", error.message);
+      console.error("❌ Error processing PDF with AI:", error.message);
 
       return {
-        message: "Error en procesamiento con IA - PDF descargado exitosamente",
+        message: "Error in AI processing - PDF downloaded successfully",
         filepath: attachment.filepath,
         error: error.message,
         skipped_ai: true,
@@ -206,23 +206,23 @@ class GmailPDFProcessor {
   }
 
   /**
-   * Función principal para procesar emails diarios
+   * Main function to process daily emails
    * @return {Promise<void>}
    */
   async processDaily() {
     try {
-      console.log("🚀 Iniciando procesamiento diario de emails...");
+      console.log("🚀 Starting daily email processing...");
 
       await this.authenticate();
 
       const messages = await this.searchTodayEmails("kennedyduque11@gmail.com");
 
       if (messages.length === 0) {
-        console.log("ℹ️  No se encontraron emails de hoy con PDFs del remitente especificado");
+        console.log("ℹ️  No emails found today with PDFs from the specified sender");
         return;
       }
 
-      const allFondosData = [];
+      const allFundsData = [];
 
       for (const message of messages) {
         const attachments = await this.downloadPDFsFromMessage(message.id);
@@ -230,30 +230,31 @@ class GmailPDFProcessor {
         for (const attachment of attachments) {
           const result = await this.processPDFWithAI(attachment);
 
-          // Si el procesamiento fue exitoso y tenemos datos de fondos
-          if (result.success && result.fondos_extraidos && Array.isArray(result.fondos_extraidos)) {
-            allFondosData.push(...result.fondos_extraidos);
+          // If processing was successful and we have fund data
+          if (result.success && result.extracted_funds && Array.isArray(result.extracted_funds)) {
+            allFundsData.push(...result.extracted_funds);
           }
         }
       }
 
-      // Guardar todos los datos en Firebase
-      if (allFondosData.length > 0) {
-        console.log(`\n🔥 Guardando ${allFondosData.length} registros de fondos en Firebase...`);
-        await saveToFirebase(allFondosData);
+      // Save all data to Firebase
+      if (allFundsData.length > 0) {
+        console.log(`\n🔥 Saving ${allFundsData.length} fund records to Firebase...`);
+        await saveToFirebase(allFundsData);
       } else {
-        console.log("⚠️  No se encontraron datos de fondos para guardar en Firebase");
+        console.log("⚠️  No fund data found to save to Firebase");
       }
 
-      console.log("✅ Procesamiento completado exitosamente");
+      console.log("✅ Processing completed successfully");
     } catch (error) {
-      console.error("❌ Error en el procesamiento:", error.message);
+      console.error("❌ Processing error:", error.message);
+      throw error;
     }
   }
 }
 
 /**
- * Función principal para ejecutar el procesamiento diario
+ * Main function to execute the processor
  * @return {Promise<void>}
  */
 async function main() {
@@ -261,8 +262,9 @@ async function main() {
   await processor.processDaily();
 }
 
+// Execute if this file is run directly
 if (require.main === module) {
-  main();
+  main().catch(console.error);
 }
 
 module.exports = GmailPDFProcessor;

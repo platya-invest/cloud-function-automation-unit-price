@@ -1,12 +1,12 @@
 const OpenAI = require("openai");
 
 /**
- * Clase para procesar PDFs usando la API de OpenAI
+ * Class to process PDFs using OpenAI API
  */
 class OpenAIProcessor {
   /**
-   * Constructor de la clase OpenAIProcessor
-   * Inicializa la conexión con OpenAI si la API key está configurada
+   * Constructor for the OpenAIProcessor class
+   * Initializes the connection with OpenAI if the API key is configured
    */
   constructor() {
     this.openai = null;
@@ -20,33 +20,33 @@ class OpenAIProcessor {
   }
 
   /**
-   * Verifica si la API key está configurada correctamente
-   * @throws {Error} Si la API key no está configurada
+   * Verifies if the API key is correctly configured
+   * @throws {Error} If the API key is not configured
    */
   verifyAPIKey() {
     if (!this.apiKeyConfigured || !this.openai) {
-      throw new Error("❌ Falta configurar OPENAI_API_KEY en las variables de entorno. Ejecuta: export OPENAI_API_KEY=tu_api_key_aqui");
+      throw new Error("❌ Missing OPENAI_API_KEY configuration in environment variables. Execute: export OPENAI_API_KEY=your_api_key_here");
     }
   }
 
   /**
-   * Procesa un archivo PDF usando OpenAI para extraer información de fondos
-   * @param {Object} attachment - Objeto con información del archivo PDF
-   * @param {string} attachment.filename - Nombre del archivo
-   * @param {Buffer} attachment.buffer - Buffer con el contenido del PDF
-   * @param {number} attachment.size - Tamaño del archivo
-   * @return {Promise<Object>} Resultado del procesamiento
+   * Processes a PDF file using OpenAI to extract fund information
+   * @param {Object} attachment - Object with PDF file information
+   * @param {string} attachment.filename - File name
+   * @param {Buffer} attachment.buffer - Buffer with PDF content
+   * @param {number} attachment.size - File size
+   * @return {Promise<Object>} Processing result
    */
   async processPDF(attachment) {
     try {
       this.verifyAPIKey();
 
-      console.log(`🤖 Procesando PDF con OpenAI: ${attachment.filename}`);
+      console.log(`🤖 Processing PDF with OpenAI: ${attachment.filename}`);
 
-      // Usar el buffer del PDF directamente
+      // Use the PDF buffer directly
       const base64PDF = attachment.buffer.toString("base64");
 
-      // Prompt personalizado para extraer datos específicos de fondos
+      // Custom prompt to extract specific fund data
       const prompt = `
 Analiza este PDF que contiene una tabla de rentabilidad de fondos.
 
@@ -101,16 +101,16 @@ IMPORTANTE:
 
       const extractedData = response.output_text.trim();
 
-      console.log("📊 Datos extraídos por OpenAI:");
+      console.log("📊 Data extracted by OpenAI:");
       console.log(extractedData);
 
-      // Intentar parsear el JSON array
+      // Try to parse the JSON array
       let parsedData;
       try {
-        // Limpiar la respuesta en caso de que tenga texto adicional
+        // Clean the response in case it has additional text
         let cleanedData = extractedData;
 
-        // Si la respuesta contiene texto adicional, extraer solo el array JSON
+        // If the response contains additional text, extract only the JSON array
         const jsonMatch = extractedData.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           cleanedData = jsonMatch[0];
@@ -118,64 +118,64 @@ IMPORTANTE:
 
         parsedData = JSON.parse(cleanedData);
 
-        // Verificar que sea un array
+        // Verify it's an array
         if (!Array.isArray(parsedData)) {
-          throw new Error("La respuesta no es un array válido");
+          throw new Error("The response is not a valid array");
         }
 
-        console.log(`✅ Se procesaron ${parsedData.length} fondos exitosamente`);
+        console.log(`✅ ${parsedData.length} funds processed successfully`);
       } catch (e) {
-        console.log("⚠️  La respuesta no está en formato JSON array válido:", e.message);
-        console.log("📄 Respuesta original:", extractedData);
+        console.log("⚠️  The response is not in valid JSON array format:", e.message);
+        console.log("📄 Original response:", extractedData);
         parsedData = {
-          error: "Formato JSON inválido",
+          error: "Invalid JSON format",
           raw_response: extractedData,
         };
       }
 
-      // Retornar resultados directamente sin guardar archivos
+      // Return results directly without saving files
       const result = {
         success: true,
-        archivo_original: attachment.filename,
-        fecha_procesamiento: new Date().toISOString(),
-        fondos_extraidos: Array.isArray(parsedData) ? parsedData : null,
-        total_fondos_encontrados: Array.isArray(parsedData) ? parsedData.length : 0,
-        analisis_completo: parsedData,
+        original_file: attachment.filename,
+        processing_date: new Date().toISOString(),
+        extracted_funds: Array.isArray(parsedData) ? parsedData : null,
+        total_funds_found: Array.isArray(parsedData) ? parsedData.length : 0,
+        complete_analysis: parsedData,
         metadata: {
-          tamaño_archivo: attachment.size,
-          modelo_usado: "gpt-4.1",
-          fondos_objetivo: 5,
+          file_size: attachment.size,
+          model_used: "gpt-4.1",
+          target_funds: 5,
         },
       };
 
-      // Mostrar resumen de fondos extraídos
+      // Show summary of extracted funds
       if (Array.isArray(parsedData) && parsedData.length > 0) {
-        console.log("\n📋 Resumen de fondos extraídos:");
-        parsedData.forEach((fondo, index) => {
-          console.log(`${index + 1}. ID: ${fondo.idFund}`);
-          console.log(`   Fecha: ${fondo.date}`);
-          console.log(`   Precio: ${fondo.price}`);
+        console.log("\n📋 Summary of extracted funds:");
+        parsedData.forEach((fund, index) => {
+          console.log(`${index + 1}. ID: ${fund.idFund}`);
+          console.log(`   Date: ${fund.date}`);
+          console.log(`   Price: ${fund.price}`);
           console.log("");
         });
       }
 
       return result;
     } catch (error) {
-      console.error("❌ Error al procesar con OpenAI:", error.message);
+      console.error("❌ Error processing with OpenAI:", error.message);
 
-      // Retornar un resultado de error pero no fallar completamente
+      // Return an error result but don't fail completely
       return {
         success: false,
         error: error.message,
-        archivo_original: attachment.filename,
+        original_file: attachment.filename,
       };
     }
   }
 
   /**
-   * Procesa múltiples archivos PDF
-   * @param {Object[]} attachments - Array de objetos con información de los PDFs
-   * @return {Promise<Object[]>} Array con los resultados del procesamiento
+   * Processes multiple PDF files
+   * @param {Object[]} attachments - Array of objects with PDF information
+   * @return {Promise<Object[]>} Array with processing results
    */
   async processMultiplePDFs(attachments) {
     const results = [];
@@ -184,7 +184,7 @@ IMPORTANTE:
       const result = await this.processPDF(attachment);
       results.push(result);
 
-      // Pequeña pausa entre procesamiento para evitar rate limits
+      // Small pause between processing to avoid rate limits
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
@@ -192,8 +192,8 @@ IMPORTANTE:
   }
 
   /**
-   * Prueba la conexión con OpenAI
-   * @return {Promise<boolean>} true si la conexión es exitosa, false en caso contrario
+   * Tests the connection with OpenAI
+   * @return {Promise<boolean>} true if connection is successful, false otherwise
    */
   async testConnection() {
     try {
@@ -207,17 +207,17 @@ IMPORTANTE:
             content: [
               {
                 type: "input_text",
-                text: "Responde solo: 'Conexión exitosa'",
+                text: "Respond only: 'Connection successful'",
               },
             ],
           },
         ],
       });
 
-      console.log("✅ Conexión con OpenAI exitosa:", response.output_text);
+      console.log("✅ Successful connection with OpenAI:", response.output_text);
       return true;
     } catch (error) {
-      console.error("❌ Error de conexión con OpenAI:", error.message);
+      console.error("❌ Connection error with OpenAI:", error.message);
       return false;
     }
   }

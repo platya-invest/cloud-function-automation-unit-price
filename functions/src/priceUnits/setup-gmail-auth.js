@@ -4,62 +4,62 @@ const {google} = require("googleapis");
 const fs = require("fs");
 const readline = require("readline");
 
-// Configuración de autenticación de Gmail
+// Gmail authentication configuration
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 const TOKEN_PATH = "./token.json";
 const CREDENTIALS_PATH = "./credentials.json";
 
 async function setupGmailAuth() {
-  console.log("🔧 Configurando autenticación de Gmail...\n");
+  console.log("🔧 Setting up Gmail authentication...\n");
 
-  // Paso 1: Verificar que existe credentials.json
+  // Step 1: Verify that credentials.json exists
   if (!fs.existsSync(CREDENTIALS_PATH)) {
-    console.error("❌ No se encontró el archivo credentials.json");
-    console.log("\n📋 Pasos para obtener credentials.json:");
-    console.log("1. Ve a https://console.cloud.google.com/");
-    console.log("2. Crea un proyecto nuevo o selecciona uno existente");
-    console.log("3. Habilita la Gmail API");
-    console.log("4. Ve a \"APIs y servicios\" > \"Credenciales\"");
-    console.log("5. Clic en \"Crear credenciales\" > \"ID de cliente OAuth 2.0\"");
-    console.log("6. Selecciona \"Aplicación de escritorio\"");
-    console.log("7. Descarga el archivo JSON y renómbralo como \"credentials.json\"");
-    console.log("8. Colócalo en esta carpeta y ejecuta este script nuevamente\n");
+    console.error("❌ credentials.json file not found");
+    console.log("\n📋 Steps to get credentials.json:");
+    console.log("1. Go to https://console.cloud.google.com/");
+    console.log("2. Create a new project or select an existing one");
+    console.log("3. Enable the Gmail API");
+    console.log("4. Go to \"APIs and services\" > \"Credentials\"");
+    console.log("5. Click \"Create credentials\" > \"OAuth 2.0 Client ID\"");
+    console.log("6. Select \"Desktop application\"");
+    console.log("7. Download the JSON file and rename it as \"credentials.json\"");
+    console.log("8. Place it in this folder and run this script again\n");
     return;
   }
 
   try {
-    // Paso 2: Cargar credenciales
+    // Step 2: Load credentials
     const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
     const {client_secret, client_id, redirect_uris} = credentials.web || credentials.installed;
 
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-    // Paso 3: Verificar si ya existe token válido
+    // Step 3: Check if valid token already exists
     if (fs.existsSync(TOKEN_PATH)) {
       try {
         const token = JSON.parse(fs.readFileSync(TOKEN_PATH));
         oAuth2Client.setCredentials(token);
 
-        // Verificar si el token sigue siendo válido
+        // Check if token is still valid
         const gmail = google.gmail({version: "v1", auth: oAuth2Client});
         await gmail.users.getProfile({userId: "me"});
 
-        console.log("✅ Ya tienes una autenticación válida configurada");
-        console.log("✅ Puedes ejecutar: npm start");
+        console.log("✅ You already have a valid authentication configured");
+        console.log("✅ You can execute: npm start");
         return;
       } catch (error) {
-        console.log("⚠️  Token existente no válido, generando uno nuevo...");
+        console.log("⚠️  Existing token not valid, generating a new one...");
         fs.unlinkSync(TOKEN_PATH);
       }
     }
 
-    // Paso 4: Generar nueva autorización
+    // Step 4: Generate new authorization
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
     });
 
-    console.log("🌐 Abre esta URL en tu navegador para autorizar la aplicación:");
+    console.log("🌐 Open this URL in your browser to authorize the application:");
     console.log("\n" + authUrl + "\n");
 
     const rl = readline.createInterface({
@@ -67,33 +67,33 @@ async function setupGmailAuth() {
       output: process.stdout,
     });
 
-    rl.question("📝 Pega aquí el código que obtienes después de autorizar: ", async (code) => {
+    rl.question("📝 Paste here the code you get after authorizing: ", async (code) => {
       rl.close();
 
       try {
         const {tokens} = await oAuth2Client.getToken(code);
         oAuth2Client.setCredentials(tokens);
 
-        // Guardar el token
+        // Save the token
         fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
-        console.log("\n✅ Token guardado exitosamente en:", TOKEN_PATH);
-        console.log("✅ Configuración completada");
-        console.log("✅ Ya puedes ejecutar: npm start\n");
+        console.log("\n✅ Token saved successfully to:", TOKEN_PATH);
+        console.log("✅ Configuration completed");
+        console.log("✅ You can now execute: npm start\n");
 
-        // Verificar que funciona
+        // Verify it works
         const gmail = google.gmail({version: "v1", auth: oAuth2Client});
         const profile = await gmail.users.getProfile({userId: "me"});
-        console.log(`📧 Conectado como: ${profile.data.emailAddress}`);
+        console.log(`📧 Connected as: ${profile.data.emailAddress}`);
       } catch (error) {
-        console.error("❌ Error al obtener token:", error.message);
-        console.log("\n🔄 Intenta ejecutar este script nuevamente");
+        console.error("❌ Error getting token:", error.message);
+        console.log("\n🔄 Try running this script again");
       }
     });
   } catch (error) {
-    console.error("❌ Error al leer credentials.json:", error.message);
-    console.log("💡 Verifica que el archivo tenga el formato JSON correcto");
+    console.error("❌ Error reading credentials.json:", error.message);
+    console.log("💡 Verify that the file has the correct JSON format");
   }
 }
 
-// Ejecutar configuración
+// Execute configuration
 setupGmailAuth();
