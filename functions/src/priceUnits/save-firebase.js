@@ -13,7 +13,7 @@ async function saveToFirebase(fondosData) {
     console.log(`🔥 Conectando a Firebase entorno: ${envInfo.environment}`);
     console.log(`📄 Base de datos: ${envInfo.databaseId}`);
 
-    const collectionRef = db.collection("testGmail");
+    const priceUnitsRef = db.collection("priceUnits");
     const fundsRef = db.collection("funds");
     console.log("🔥 Guardando datos en Firebase...");
 
@@ -43,7 +43,7 @@ async function saveToFirebase(fondosData) {
         await fundDoc.ref.update({
           unit: price,
         });
-        const docRef = collectionRef
+        const docRef = priceUnitsRef
             .doc(idFund)
             .collection("historical")
             .doc(date);
