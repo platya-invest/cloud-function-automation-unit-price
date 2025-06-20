@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "platia-keycloak",
+    "qa": "platia-keycloak",
+    "prod": "platia-keycloak" //actualizar a prod
+  },
+  "targets": {},
+  "etags": {}
+}
