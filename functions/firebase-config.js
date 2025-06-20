@@ -27,7 +27,7 @@ class FirebaseConfig {
 
       switch (this.environment) {
         case "qa":
-          serviceAccount = require("./platia-keycloak-firebase-adminsdk-ji2io-68a40b9313.json");
+          serviceAccount = require("./src/priceUnits/platia-keycloak-firebase-adminsdk-ji2io-68a40b9313.json");
           databaseId = "mpfi-qa-firestore-db";
           break;
 
@@ -37,7 +37,7 @@ class FirebaseConfig {
           break;
 
         default:
-          serviceAccount = require("./platia-keycloak-firebase-adminsdk-ji2io-68a40b9313.json");
+          serviceAccount = require("./src/priceUnits/platia-keycloak-firebase-adminsdk-ji2io-68a40b9313.json");
           databaseId = "mpfi-qa-firestore-db";
           break;
       }

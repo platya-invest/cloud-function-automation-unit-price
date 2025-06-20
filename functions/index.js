@@ -8,7 +8,7 @@
  */
 
 // Usar la configuración centralizada de Firebase
-const firebaseConfig = require("./src/priceUnits/firebase-config");
+const firebaseConfig = require("./firebase-config");
 firebaseConfig.initialize();
 
 const priceUnits = require("./src/priceUnits/index-price");
